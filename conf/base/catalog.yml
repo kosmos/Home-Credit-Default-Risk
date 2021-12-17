@@ -1,0 +1,61 @@
+# Here you can define all your data sets by using simple YAML syntax.
+#
+# Documentation for this file format can be found in "The Data Catalog"
+# Link: https://kedro.readthedocs.io/en/stable/05_data/01_data_catalog.html
+
+application_train_dataset:
+  type: pandas.CSVDataSet
+  filepath: data/01_raw/application_train.csv
+  layer: raw
+
+application_test_dataset:
+  type: pandas.CSVDataSet
+  filepath: data/01_raw/application_test.csv
+  layer: raw
+
+bureau_dataset:
+  type: pandas.CSVDataSet
+  filepath: data/01_raw/bureau.csv
+  layer: raw
+
+bureau_balance_dataset:
+  type: pandas.CSVDataSet
+  filepath: data/01_raw/bureau_balance.csv
+  layer: raw
+
+credit_card_balance_dataset:
+  type: pandas.CSVDataSet
+  filepath: data/01_raw/credit_card_balance.csv
+  layer: raw
+
+installments_payments_dataset:
+  type: pandas.CSVDataSet
+  filepath: data/01_raw/installments_payments.csv
+  layer: raw
+
+pos_cash_balance_dataset:
+  type: pandas.CSVDataSet
+  filepath: data/01_raw/pos_cash_balance.csv
+  layer: raw
+
+previous_application_dataset:
+  type: pandas.CSVDataSet
+  filepath: data/01_raw/previous_application.csv
+  layer: raw
+
+
+sample_submission_dataset:
+  type: pandas.CSVDataSet
+  filepath: data/01_raw/sample_submission.csv
+  layer: raw
+
+# Primary
+clean_train:
+  type: pandas.CSVDataSet
+  filepath: data/03_primary/clean_train.csv
+  layer: primary
+
+clean_test:
+  type: pandas.CSVDataSet
+  filepath: data/03_primary/clean_test.csv
+  layer: primary
