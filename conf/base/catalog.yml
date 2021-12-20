@@ -50,12 +50,33 @@ sample_submission_dataset:
   layer: raw
 
 # Primary
-clean_train:
-  type: pandas.CSVDataSet
-  filepath: data/03_primary/clean_train.csv
-  layer: primary
+#X:
+#  type: pandas.CSVDataSet
+#  filepath: data/03_primary/X.csv
+#  layer: primary
+#
+#y:
+#  type: pickle.PickleDataSet
+#  filepath: data/03_primary/y.pickle
+#  layer: primary
+#
+#X_test:
+#  type: pandas.CSVDataSet
+#  filepath: data/03_primary/X_test.csv
+#  layer: primary
 
-clean_test:
+
+# Model
+model:
+  type: pickle.PickleDataSet
+  filepath: data/06_models/model.pickle
+  versioned: true
+  layer: models
+
+
+# Outputs
+submission:
   type: pandas.CSVDataSet
-  filepath: data/03_primary/clean_test.csv
-  layer: primary
+  filepath: data/07_model_output/submission.csv
+  versioned: true
+  layer: model_output

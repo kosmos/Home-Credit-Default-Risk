@@ -2,8 +2,17 @@ random_state: 42
 
 test_size: 0.85
 
+target_column: "TARGET"
+
+# Features
+poly_features:
+  - EXT_SOURCE_1
+  - EXT_SOURCE_2
+  - EXT_SOURCE_3
+  - DAYS_BIRTH
+
+# Model
 model_params:
   loss_function: "Logloss"
   eval_metric: "AUC"
-  use_best_model: True
   early_stopping_rounds: 10
