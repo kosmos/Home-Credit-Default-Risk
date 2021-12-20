@@ -5,7 +5,8 @@ generated using Kedro 0.17.6
 
 from kedro.pipeline import Pipeline, node
 from .nodes import clean_days_employed, drop_target, transform_categorical_features, fe_poly_features, \
-    fe_domain_features, convert_types, agg_numeric, merge_with_main_datasets, agg_categorical, aggregate_client
+    fe_domain_features, convert_types, agg_numeric, merge_with_main_datasets, agg_categorical, aggregate_client, \
+    remove_missing_columns
 
 
 def create_pipeline(**kwargs):
@@ -105,7 +106,7 @@ def create_pipeline(**kwargs):
         ),
         node(
             func=aggregate_client,
-            inputs=["credit_card_balance_dataset_converted", "params:group_vars", "params:df_names"],
+            inputs=["credit_card_balance_dataset_converted", "params:group_vars", "params:df_names_for_credit_card_balance_dataset"],
             outputs="cash_by_client",
             name="aggregate_client_cash_by_client",
         ),
@@ -116,16 +117,44 @@ def create_pipeline(**kwargs):
             outputs=["train_with_cash_by_client", "test_with_cash_by_client"],
         ),
 
+        # FE Add features from pos_cash_balance_dataset
+        node(
+            func=convert_types,
+            inputs="pos_cash_balance_dataset",
+            outputs="pos_cash_balance_dataset_converted",
+            name="convert_types_pos_cash_balance_dataset",
+        ),
+        node(
+            func=aggregate_client,
+            inputs=["pos_cash_balance_dataset_converted", "params:group_vars", "params:df_names_for_pos_cash_balance_dataset"],
+            outputs="pos_cash_balance_by_client",
+            name="aggregate_pos_cash_balance",
+        ),
+        node(
+            func=merge_with_main_datasets,
+            inputs=["train_with_cash_by_client", "test_with_cash_by_client",
+                    "pos_cash_balance_by_client"],
+            outputs=["train_with_pos_cash_balance_by_client", "test_with_pos_cash_balance_by_client"],
+        ),
+
+        # Drop columns with big number of empty data
+        node(
+            func=remove_missing_columns,
+            inputs=["train_with_pos_cash_balance_by_client", "test_with_pos_cash_balance_by_client", "params:drop_column_threshold"],
+            outputs=["train_without_empty", "test_without_empty"],
+            name="remove_missing_columns",
+        ),
+
         # Transform categorical features for CatBoost algorithm
         node(
             func=transform_categorical_features,
-            inputs="train_with_cash_by_client",
+            inputs="train_without_empty",
             outputs=["X", "cat_features"],
             name="transform_categorical_features_train",
         ),
         node(
             func=transform_categorical_features,
-            inputs="test_with_cash_by_client",
+            inputs="test_without_empty",
             outputs=["X_test", "cat_features_"],
             name="transform_categorical_features_test",
         ),

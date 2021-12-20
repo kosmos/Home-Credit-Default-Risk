@@ -10,6 +10,12 @@ group_vars:
   - SK_ID_PREV
   - SK_ID_CURR
 
-df_names:
+df_names_for_credit_card_balance_dataset:
+  - credit
+  - client
+
+df_names_for_pos_cash_balance_dataset:
   - cash
   - client
+
+drop_column_threshold: 90
