@@ -5,3 +5,11 @@
 # Link: https://kedro.readthedocs.io/en/0.17.6/04_kedro_project_setup/02_configuration.html#parameters
 parent_var: "SK_ID_CURR"
 previous_application_prefix: "previous"
+
+group_vars:
+  - SK_ID_PREV
+  - SK_ID_CURR
+
+df_names:
+  - cash
+  - client

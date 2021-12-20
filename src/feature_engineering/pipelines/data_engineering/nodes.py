@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 from typing import List
+import gc
 
 from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import PolynomialFeatures
@@ -178,6 +179,124 @@ def agg_numeric(df: pd.DataFrame, parent_var: str, df_name: str) -> pd.DataFrame
     agg = agg.iloc[:, idx]
 
     return agg
+
+
+def agg_categorical(df: pd.DataFrame, parent_var: str, df_name: str) -> pd.DataFrame:
+    """
+    Aggregates the categorical features in a child dataframe
+    for each observation of the parent variable.
+
+    Parameters
+    --------
+    df : dataframe
+        The dataframe to calculate the value counts for.
+
+    parent_var : string
+        The variable by which to group and aggregate the dataframe. For each unique
+        value of this variable, the final dataframe will have one row
+
+    df_name : string
+        Variable added to the front of column names to keep track of columns
+
+
+    Return
+    --------
+    categorical : dataframe
+        A dataframe with aggregated statistics for each observation of the parent_var
+        The columns are also renamed and columns with duplicate values are removed.
+
+    """
+
+    # Select the categorical columns
+    categorical = pd.get_dummies(df.select_dtypes('category'))
+
+    # Make sure to put the identifying id on the column
+    categorical[parent_var] = df[parent_var]
+
+    # Groupby the group var and calculate the sum and mean
+    categorical = categorical.groupby(parent_var).agg(['sum', 'count', 'mean'])
+
+    column_names = []
+
+    # Iterate through the columns in level 0
+    for var in categorical.columns.levels[0]:
+        # Iterate through the stats in level 1
+        for stat in ['sum', 'count', 'mean']:
+            # Make a new column name
+            column_names.append('%s_%s_%s' % (df_name, var, stat))
+
+    categorical.columns = column_names
+
+    # Remove duplicate columns by values
+    _, idx = np.unique(categorical, axis=1, return_index=True)
+    categorical = categorical.iloc[:, idx]
+
+    return categorical
+
+
+def aggregate_client(df, group_vars, df_names):
+    """Aggregate a dataframe with data at the loan level
+    at the client level
+
+    Args:
+        df (dataframe): data at the loan level
+        group_vars (list of two strings): grouping variables for the loan
+        and then the client (example ['SK_ID_PREV', 'SK_ID_CURR'])
+        names (list of two strings): names to call the resulting columns
+        (example ['cash', 'client'])
+
+    Returns:
+        df_client (dataframe): aggregated numeric stats at the client level.
+        Each client will have a single row with all the numeric data aggregated
+    """
+
+    # Aggregate the numeric columns
+    df_agg = agg_numeric(df, parent_var=group_vars[0], df_name=df_names[0])
+
+    # If there are categorical variables
+    if any(df.dtypes == 'category'):
+
+        # Count the categorical columns
+        df_counts = agg_categorical(df, parent_var=group_vars[0], df_name=df_names[0])
+
+        # Merge the numeric and categorical
+        df_by_loan = df_counts.merge(df_agg, on=group_vars[0], how='outer')
+
+        gc.enable()
+        del df_agg, df_counts
+        gc.collect()
+
+        # Merge to get the client id in dataframe
+        df_by_loan = df_by_loan.merge(df[[group_vars[0], group_vars[1]]], on=group_vars[0], how='left')
+
+        # Remove the loan id
+        df_by_loan = df_by_loan.drop(columns=[group_vars[0]])
+
+        # Aggregate numeric stats by column
+        df_by_client = agg_numeric(df_by_loan, parent_var=group_vars[1], df_name=df_names[1])
+
+
+    # No categorical variables
+    else:
+        # Merge to get the client id in dataframe
+        df_by_loan = df_agg.merge(df[[group_vars[0], group_vars[1]]], on=group_vars[0], how='left')
+
+        gc.enable()
+        del df_agg
+        gc.collect()
+
+        # Remove the loan id
+        df_by_loan = df_by_loan.drop(columns=[group_vars[0]])
+
+        # Aggregate numeric stats by column
+        df_by_client = agg_numeric(df_by_loan, parent_var=group_vars[1], df_name=df_names[1])
+
+    # Memory management
+    gc.enable()
+    del df, df_by_loan
+    gc.collect()
+
+    return df_by_client
 
 
 def merge_with_main_datasets(train: pd.DataFrame, test: pd.DataFrame, df: pd.DataFrame) -> (pd.DataFrame, pd.DataFrame):
