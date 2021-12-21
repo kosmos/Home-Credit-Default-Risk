@@ -6,7 +6,7 @@ generated using Kedro 0.17.6
 from kedro.pipeline import Pipeline, node
 from .nodes import clean_days_employed, drop_target, transform_categorical_features, fe_poly_features, \
     fe_domain_features, convert_types, agg_numeric, merge_with_main_datasets, agg_categorical, aggregate_client, \
-    remove_missing_columns
+    remove_missing_columns, merge_bureau_balance
 
 
 def create_pipeline(**kwargs):
@@ -67,6 +67,75 @@ def create_pipeline(**kwargs):
             name="fe_domain_features_test",
         ),
 
+        # FE Add features from bureau_dataset
+        node(
+            func=convert_types,
+            inputs="bureau_dataset",
+            outputs="bureau_dataset_converted",
+            name="convert_types_bureau_dataset",
+        ),
+        node(
+            func=agg_numeric,
+            inputs=["bureau_dataset_converted", "params:parent_var", "params:bureau_prefix"],
+            outputs="bureau_dataset_numeric",
+            name="agg_numeric_bureau_dataset",
+        ),
+        node(
+            func=agg_categorical,
+            inputs=["bureau_dataset_converted", "params:parent_var", "params:bureau_prefix"],
+            outputs="bureau_dataset_categorical",
+            name="agg_categorical_bureau_dataset",
+        ),
+        node(
+            func=merge_with_main_datasets,
+            inputs=["train_with_domain", "test_with_domain", "bureau_dataset_numeric"],
+            outputs=["train_with_bureau_dataset_numeric", "test_with_bureau_dataset_numeric"],
+        ),
+        node(
+            func=merge_with_main_datasets,
+            inputs=["train_with_bureau_dataset_numeric", "test_with_bureau_dataset_numeric",
+                    "bureau_dataset_categorical"],
+            outputs=["train_with_bureau_dataset", "test_with_bureau_dataset"],
+        ),
+
+        # FE Add features from bureau_balance_dataset
+        node(
+            func=convert_types,
+            inputs="bureau_balance_dataset",
+            outputs="bureau_balance_dataset_converted",
+            name="convert_types_bureau_balance_dataset",
+        ),
+        node(
+            func=agg_numeric,
+            inputs=["bureau_balance_dataset_converted", "params:parent_var_bureau", "params:bureau_balance_prefix"],
+            outputs="bureau_balance_dataset_numeric",
+            name="agg_numeric_bureau_balance_dataset",
+        ),
+        node(
+            func=agg_categorical,
+            inputs=["bureau_balance_dataset_converted", "params:parent_var_bureau", "params:bureau_balance_prefix"],
+            outputs="bureau_balance_dataset_categorical",
+            name="agg_categorical_bureau_balance_dataset",
+        ),
+        node(
+            func=merge_bureau_balance,
+            inputs=["bureau_dataset", "bureau_balance_dataset_categorical", "bureau_balance_dataset_numeric"],
+            outputs="bureau_by_loan",
+            name="merge_bureau_balance",
+        ),
+        node(
+            func=agg_numeric,
+            inputs=["bureau_by_loan", "params:parent_var", "params:client_prefix"],
+            outputs="bureau_balance_by_client",
+            name="agg_numeric_bureau_balance_by_client",
+        ),
+        node(
+            func=merge_with_main_datasets,
+            inputs=["train_with_bureau_dataset", "test_with_bureau_dataset",
+                    "bureau_balance_by_client"],
+            outputs=["train_with_bureau_balance_by_client", "test_with_bureau_balance_by_client"],
+        ),
+
         # FE Add features from previous_application_dataset
         node(
             func=convert_types,
@@ -88,7 +157,7 @@ def create_pipeline(**kwargs):
         ),
         node(
             func=merge_with_main_datasets,
-            inputs=["train_with_domain", "test_with_domain", "previous_application_numeric"],
+            inputs=["train_with_bureau_balance_by_client", "test_with_bureau_balance_by_client", "previous_application_numeric"],
             outputs=["train_with_previous_application_numeric", "test_with_previous_application_numeric"],
         ),
         node(
@@ -137,10 +206,31 @@ def create_pipeline(**kwargs):
             outputs=["train_with_pos_cash_balance_by_client", "test_with_pos_cash_balance_by_client"],
         ),
 
+        # FE Add features from installments_payments_dataset
+        node(
+            func=convert_types,
+            inputs="installments_payments_dataset",
+            outputs="installments_payments_dataset_converted",
+            name="convert_types_installments_payments_dataset",
+        ),
+        node(
+            func=aggregate_client,
+            inputs=["installments_payments_dataset_converted", "params:group_vars",
+                    "params:df_names_for_installments_payments_dataset"],
+            outputs="installments_payments_by_client",
+            name="aggregate_installments_payments",
+        ),
+        node(
+            func=merge_with_main_datasets,
+            inputs=["train_with_pos_cash_balance_by_client", "test_with_pos_cash_balance_by_client",
+                    "installments_payments_by_client"],
+            outputs=["train_with_installments_payments_by_client", "test_with_installments_payments_by_client"],
+        ),
+
         # Drop columns with big number of empty data
         node(
             func=remove_missing_columns,
-            inputs=["train_with_pos_cash_balance_by_client", "test_with_pos_cash_balance_by_client", "params:drop_column_threshold"],
+            inputs=["train_with_installments_payments_by_client", "test_with_installments_payments_by_client", "params:drop_column_threshold"],
             outputs=["train_without_empty", "test_without_empty"],
             name="remove_missing_columns",
         ),

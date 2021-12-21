@@ -306,7 +306,7 @@ def merge_with_main_datasets(train: pd.DataFrame, test: pd.DataFrame, df: pd.Dat
     return train, test
 
 
-def remove_missing_columns(train, test, threshold=90):
+def remove_missing_columns(train: pd.DataFrame, test: pd.DataFrame, threshold=90) -> (pd.DataFrame, pd.DataFrame):
     # Calculate missing stats for train and test (remember to calculate a percent!)
     train_miss = pd.DataFrame(train.isnull().sum())
     train_miss['percent'] = 100 * train_miss[0] / len(train)
@@ -329,3 +329,15 @@ def remove_missing_columns(train, test, threshold=90):
     test = test.drop(columns=missing_columns)
 
     return train, test
+
+
+def merge_bureau_balance(bureau: pd.DataFrame, bureau_balance_categorical: pd.DataFrame,
+                         bureau_balance_numeric: pd.DataFrame) -> pd.DataFrame:
+    # Dataframe grouped by the loan
+    bureau_by_loan = bureau_balance_numeric.merge(bureau_balance_categorical, right_index=True, left_on='SK_ID_BUREAU',
+                                              how='outer')
+
+    # Merge to include the SK_ID_CURR
+    bureau_by_loan = bureau[['SK_ID_BUREAU', 'SK_ID_CURR']].merge(bureau_by_loan, on='SK_ID_BUREAU', how='left')
+
+    return bureau_by_loan.drop(columns = ['SK_ID_BUREAU'])

@@ -4,6 +4,11 @@
 # Documentation for this file format can be found in "Parameters"
 # Link: https://kedro.readthedocs.io/en/0.17.6/04_kedro_project_setup/02_configuration.html#parameters
 parent_var: "SK_ID_CURR"
+
+parent_var_bureau: "SK_ID_BUREAU"
+bureau_prefix: "bureau"
+bureau_balance_prefix: "bureau_balance"
+client_prefix: "client"
 previous_application_prefix: "previous"
 
 group_vars:
@@ -16,6 +21,10 @@ df_names_for_credit_card_balance_dataset:
 
 df_names_for_pos_cash_balance_dataset:
   - cash
+  - client
+
+df_names_for_installments_payments_dataset:
+  - installments
   - client
 
 drop_column_threshold: 90
